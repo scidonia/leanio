@@ -1103,8 +1103,8 @@ This fork serves through [`scidonia/leanin`](https://github.com/scidonia/leanin)
 `LeanIO.Backend.LeanIn` implements the native handler/body/writer path, and `LeanIO.Examples.Native` declares the
 routes used by the socket suite.
 
-LeanIn is a Lake dependency (`require leanin from "../leanin"` in this checkout; point it at a pinned revision for
-a published build). The socket shim is carried here as `c/netuv.c`, so the executables build with `lake` alone.
+LeanIn is a Lake dependency pinned to `scidonia/leanin` main at `a7e8e9c`
+(`require leanin from git "https://github.com/scidonia/leanin.git" @ "a7e8e9c…"`). The socket shim is carried here as `c/netuv.c`, so the executables build with `lake` alone.
 
 ```
 lake build leanioNative leanioDrain leanioCancelContract

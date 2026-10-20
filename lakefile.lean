@@ -7,7 +7,7 @@ executables are built by `lake` alone. -/
 package leanio where
   fixedToolchain := true
 
-require leanin from "../leanin"
+require leanin from git "https://github.com/scidonia/leanin.git" @ "a7e8e9ca4fef75b6eff665925ff17aaf9ff35029"
 
 lean_lib LeanIO where
   globs := #[.one `LeanIO, .submodules `LeanIO]
