@@ -1096,3 +1096,24 @@ lake test
 ## License
 
 MIT. See [`LICENSE`](./LICENSE).
+
+## LeanIn backend
+
+This fork serves through [`scidonia/leanin`](https://github.com/scidonia/leanin) rather than the stock task pool.
+`LeanIO.Backend.LeanIn` implements the native handler/body/writer path, and `LeanIO.Examples.Native` declares the
+routes used by the socket suite.
+
+LeanIn is a Lake dependency (`require leanin from "../leanin"` in this checkout; point it at a pinned revision for
+a published build). The socket shim is carried here as `c/netuv.c`, so the executables build with `lake` alone.
+
+```
+lake build leanioNative leanioDrain leanioCancelContract
+bash tests/leanio-native.sh     # 64 checks at the public socket
+bash tests/drain.sh             # stop admission, drain an in-flight request
+bash tests/http-cancel-contract.sh HC1
+bash tests/http-cancel-contract.sh HC2
+```
+
+Paired against the shipped `Std.Http.Server` over `GET /bench` (7 interleaved rounds, 5 s per arm, pinned cores),
+the native backend measured 11.02x, 14.11x and 14.80x at C=1, 8 and 32 on 2026-10-20; `bench/leanio-pair.sh`
+reproduces it. The measurement was taken on the LeanIn tree at `1f6b302`, before the fork moved out.
