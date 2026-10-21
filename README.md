@@ -1103,8 +1103,8 @@ This fork serves through [`scidonia/leanin`](https://github.com/scidonia/leanin)
 `LeanIO.Backend.LeanIn` implements the native handler/body/writer path, and `LeanIO.Examples.Native` declares the
 routes used by the socket suite.
 
-LeanIn is a Lake dependency pinned to the `v0.2.0` tag
-(`require leanin from git "https://github.com/scidonia/leanin.git" @ "v0.2.0"`). The socket shim is carried here as `c/netuv.c`, so the executables build with `lake` alone.
+LeanIn is a Lake dependency pinned to the `v0.3.0` tag
+(`require leanin from git "https://github.com/scidonia/leanin.git" @ "v0.3.0"`). The socket shim is carried here as `c/netuv.c`, so the executables build with `lake` alone.
 
 ```
 lake build leanioNative leanioDrain leanioCancelContract
@@ -1117,4 +1117,4 @@ bash tests/http-cancel-contract.sh HC2
 Paired against the shipped `Std.Http.Server` over `GET /bench` (7 interleaved rounds, 5 s per arm, pinned cores),
 the native backend measured 11.02x, 14.11x and 14.80x at C=1, 8 and 32 on 2026-10-20; `bench/leanio-pair.sh`
 reproduces it. The measurement was taken on the LeanIn tree at `1f6b302`, before the fork moved out; this branch targets
-LeanIn `v0.2.0`.
+LeanIn `v0.3.0`.
