@@ -5,9 +5,10 @@ open System Lake DSL
 itself lives in `scidonia/leanin`, pinned below; this package carries the shim it links against so its
 executables are built by `lake` alone. -/
 package leanio where
+  version := v!"0.1.0"
   fixedToolchain := true
 
-require leanin from git "https://github.com/scidonia/leanin.git" @ "a7e8e9ca4fef75b6eff665925ff17aaf9ff35029"
+require leanin from git "https://github.com/scidonia/leanin.git" @ "v0.2.0"
 
 lean_lib LeanIO where
   globs := #[.one `LeanIO, .submodules `LeanIO]
