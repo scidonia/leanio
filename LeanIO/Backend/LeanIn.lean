@@ -1,8 +1,8 @@
 module
 
 public import LeanIn
-public import LeanIn.Examples.Http.H1
-public import LeanIn.Examples.Http.Server
+public import LeanIn.Http.H1
+public import LeanIn.Http.Server
 public import LeanIO.Router.RouteTrie
 public import Std.Http.Data.Method
 public import Lean
@@ -45,12 +45,12 @@ and scope-exit cleanup.
 namespace LeanIO.Backend.LeanIn
 
 open LeanIn
-open LeanIn.Examples.Http
+open LeanIn.Http
 open LeanIO.Router
 open Std.Http
 
 /-- The driver's handler: the streaming session shape. -/
-abbrev CoreHandler := LeanIn.Examples.Http.Server.StreamHandler
+abbrev CoreHandler := LeanIn.Http.Server.StreamHandler
 
 /-- A request's cancellation/cleanup scope. Children share it; the scope owner sets `cancelled` on exit and
 runs `cleanups` exactly once, after the handler's outcome is fixed. -/
@@ -67,7 +67,7 @@ whole body reads it, and a route that streams consumes it incrementally. `params
 a parameterised route, in the order the pattern names them. -/
 structure Request where
   head : H1.Head
-  body : LeanIn.Examples.Http.Server.BodyReader
+  body : LeanIn.Http.Server.BodyReader
   params : List (String × String) := []
   /-- Request extensions, as in LeanIO's `Request`: middleware can insert typed values and a handler can read
   them back with `Extensions.get`. -/
@@ -78,11 +78,11 @@ structure Request where
   peer : Option Std.Net.SocketAddress := none
 
 /-- A native handler: the request and the response writer, so a response need not be accumulated. -/
-abbrev Handler := Request → LeanIn.Examples.Http.Server.ResponseWriter → LeanIn.Runtime.VM Unit
+abbrev Handler := Request → LeanIn.Http.Server.ResponseWriter → LeanIn.Runtime.VM Unit
 
 /-- Read a whole body through the reader. This is what a buffered extractor (`jsonBody`, `formBody`) does; a
 streaming route calls `recv` itself and never accumulates. -/
-partial def readAll (r : LeanIn.Examples.Http.Server.BodyReader) (acc : ByteArray) : LeanIn.Runtime.VM ByteArray := do
+partial def readAll (r : LeanIn.Http.Server.BodyReader) (acc : ByteArray) : LeanIn.Runtime.VM ByteArray := do
   match ← r.recv 65536 with
   | some chunk => readAll r (acc ++ chunk)
   | none => return acc
@@ -346,20 +346,20 @@ def boundary? (r : Request) : Option String :=
       | _ => none
 
 /-- The native body source for the upstream multipart parser. -/
-instance : LeanIO.BodySource LeanIn.Runtime.VM LeanIn.Examples.Http.Server.BodyReader where
+instance : LeanIO.BodySource LeanIn.Runtime.VM LeanIn.Http.Server.BodyReader where
   recv r := r.recv 65536
 
 /-- Build the upstream `MultiPartForm` over the native request reader. -/
 def multipartForm (req : Request) :
     LeanIn.Runtime.VM (Except (Nat × String)
-      (LeanIO.MultiPartForm LeanIn.Runtime.VM LeanIn.Examples.Http.Server.BodyReader)) := do
+      (LeanIO.MultiPartForm LeanIn.Runtime.VM LeanIn.Http.Server.BodyReader)) := do
   if req.mediaType? != some "multipart/form-data" then
     return .error (415, "unsupported media type")
   match boundary? req with
   | none => return .error (400, "missing multipart boundary")
   | some b =>
     let boundSep := ("\r\n--" ++ b).toUTF8
-    let inner : LeanIO.MultipartInner LeanIn.Runtime.VM LeanIn.Examples.Http.Server.BodyReader := {
+    let inner : LeanIO.MultipartInner LeanIn.Runtime.VM LeanIn.Http.Server.BodyReader := {
       boundStart := boundSep.extract 2 boundSep.size
       boundSepSearch := LeanIO.Search.new (LeanIO.ChunkBuffer.ofByteArray boundSep)
       stream := req.body }
@@ -369,7 +369,7 @@ def multipartForm (req : Request) :
 /-- Compose the upstream multipart API with a handler. The entries and `FormFile` operations are the same
 types the stock backend uses, instantiated at `VM`/`BodyReader`. -/
 def withMultipartForm
-    (f : LeanIO.MultiPartForm LeanIn.Runtime.VM LeanIn.Examples.Http.Server.BodyReader → Handler) :
+    (f : LeanIO.MultiPartForm LeanIn.Runtime.VM LeanIn.Http.Server.BodyReader → Handler) :
     Handler :=
   fun req w => do
     match ← multipartForm req with
@@ -386,7 +386,7 @@ def response (status : Nat) (reason : String) (body : ByteArray)
   ({ status, reason, headers := headers.push ("Content-Length", toString body.size) }, body)
 
 /-- A buffered response through the streaming writer: `Content-Length` and one write. -/
-def respond (w : LeanIn.Examples.Http.Server.ResponseWriter) (status : Nat) (reason : String)
+def respond (w : LeanIn.Http.Server.ResponseWriter) (status : Nat) (reason : String)
     (body : ByteArray) (headers : Array (String × String) := #[]) : LeanIn.Runtime.VM Unit := do
   w.start { status, reason, headers := headers.push ("Content-Length", toString body.size) }
   w.write body
@@ -396,7 +396,7 @@ def respond (w : LeanIn.Examples.Http.Server.ResponseWriter) (status : Nat) (rea
 writer, so a body can read and write without receiving them as arguments. -/
 structure Env where
   req : Request
-  writer : LeanIn.Examples.Http.Server.ResponseWriter
+  writer : LeanIn.Http.Server.ResponseWriter
 
 /-- The native application monad. A body written in the route syntax runs in `AppM`; the handler supplies the
 environment once. -/
@@ -413,10 +413,10 @@ def respond (status : Nat) (reason : String) (body : ByteArray)
   fun env => LeanIO.Backend.LeanIn.respond env.writer status reason body headers
 
 /-- The response writer, for a body that streams. -/
-def writer : AppM LeanIn.Examples.Http.Server.ResponseWriter := fun env => pure env.writer
+def writer : AppM LeanIn.Http.Server.ResponseWriter := fun env => pure env.writer
 
 /-- The request body reader, for a route that streams the request. -/
-def bodyReader : AppM LeanIn.Examples.Http.Server.BodyReader := fun env => pure env.req.body
+def bodyReader : AppM LeanIn.Http.Server.BodyReader := fun env => pure env.req.body
 
 /-- Abort if the request scope has been cancelled. Cooperative, like `ContextAsync.checkCancelled`: a
 computation that never checks continues until it finishes. -/
@@ -569,7 +569,7 @@ instance : IntoResponseM (H1.ResponseHead × ByteArray) where
 
 /-- Stream a file handle to the response writer. -/
 partial def streamFileHandle (h : IO.FS.Handle)
-    (w : LeanIn.Examples.Http.Server.ResponseWriter) : LeanIn.Runtime.VM Unit := do
+    (w : LeanIn.Http.Server.ResponseWriter) : LeanIn.Runtime.VM Unit := do
   let bytes ← (monadLift (h.read (USize.ofNat 65536) : IO ByteArray))
   if bytes.isEmpty then w.finish
   else
@@ -622,7 +622,7 @@ def pickRange (ranges : Option (Array LeanIO.Range)) (fileSize : Nat) : Option (
       | none, none => some (0, fileSize)
 
 /-- Stream at most `n` bytes from a file handle. -/
-partial def streamFileHandleN (h : IO.FS.Handle) (w : LeanIn.Examples.Http.Server.ResponseWriter)
+partial def streamFileHandleN (h : IO.FS.Handle) (w : LeanIn.Http.Server.ResponseWriter)
     (n : Nat) : LeanIn.Runtime.VM Unit := do
   if n == 0 then w.finish
   else
@@ -835,8 +835,8 @@ def withExtract (extract : Request → LeanIn.Runtime.VM (Except (Nat × String)
     | .error (status, msg) => respond w status (reasonFor status) msg.toUTF8
 
 /-- A writer that runs the handler but drops the body, for HEAD from a GET route. -/
-def discardBody (w : LeanIn.Examples.Http.Server.ResponseWriter) :
-    LeanIn.Examples.Http.Server.ResponseWriter := {
+def discardBody (w : LeanIn.Http.Server.ResponseWriter) :
+    LeanIn.Http.Server.ResponseWriter := {
   start := fun rh =>
     let hs := (rh.headers.filter (fun (n, _) => n.toLower != "content-length")).push ("Content-Length", "0")
     w.start { rh with headers := hs }
@@ -847,7 +847,7 @@ def discardBody (w : LeanIn.Examples.Http.Server.ResponseWriter) :
 
 /-- Run one handler with a fresh request scope: children are asked to stop, cleanups run exactly once, and
 the handler's outcome is re-raised (an abort stays an abort). -/
-def runScoped (handler : Handler) (req : Request) (w : LeanIn.Examples.Http.Server.ResponseWriter) : LeanIn.Runtime.VM Unit := do
+def runScoped (handler : Handler) (req : Request) (w : LeanIn.Http.Server.ResponseWriter) : LeanIn.Runtime.VM Unit := do
   let cancelled ← (monadLift (IO.mkRef (false : Bool) : IO (IO.Ref Bool)) : LeanIn.Runtime.VM _)
   let cleanups ← (monadLift (IO.mkRef (#[] : Array (LeanIn.Runtime.VM Unit)) :
     IO (IO.Ref (Array (LeanIn.Runtime.VM Unit)))) : LeanIn.Runtime.VM _)
@@ -893,9 +893,9 @@ clock, e.g. to suspend on a timer). Blocks until the accept loop ends. -/
 def serveWith (hooks : LeanIn.Runtime.Hooks) (handler : CoreHandler) (port : UInt16) : IO UInt32 := do
   let l ← LeanIn.Runtime.Listener.bind (LeanIn.Runtime.loopback port)
   let e ← LeanIn.Sched.Executor.new LeanIn.Task.Item 256 1
-  let cfg : LeanIn.Examples.Http.Server.Config := { clock := LeanIn.Runtime.Clock.live hooks }
+  let cfg : LeanIn.Http.Server.Config := { clock := LeanIn.Runtime.Clock.live hooks }
   let prog : LeanIn.Task.EAsync IO.Error Unit :=
-    LeanIn.Runtime.serveForever hooks l (LeanIn.Examples.Http.Server.serveConnStream cfg · handler)
+    LeanIn.Runtime.serveForever hooks l (LeanIn.Http.Server.serveConnStream cfg · handler)
   let outcome : Except IO.Error Unit ← LeanIn.Runtime.run e prog
   LeanIn.Runtime.Io.stop
   match outcome with
@@ -923,14 +923,14 @@ end ServerHandle
 
 /-- Start serving without blocking: the accept loop runs on a dedicated thread, and the returned handle stops
 and joins it. Uses `serveUntilStopped`, so `stop` is a drain rather than an abort. -/
-def serveWithHandleH1 (hooks : LeanIn.Runtime.Hooks) (h1 : LeanIn.Examples.Http.H1.Limits)
+def serveWithHandleH1 (hooks : LeanIn.Runtime.Hooks) (h1 : LeanIn.Http.H1.Limits)
     (handler : CoreHandler) (port : UInt16) : IO ServerHandle := do
   let l ← LeanIn.Runtime.Listener.bind (LeanIn.Runtime.loopback port)
   let e ← LeanIn.Sched.Executor.new LeanIn.Task.Item 256 1
-  let cfg : LeanIn.Examples.Http.Server.Config := { h1, clock := LeanIn.Runtime.Clock.live hooks }
+  let cfg : LeanIn.Http.Server.Config := { h1, clock := LeanIn.Runtime.Clock.live hooks }
   let prog : LeanIn.Task.EAsync IO.Error Unit :=
     LeanIn.Runtime.serveUntilStopped hooks e l 20
-      (LeanIn.Examples.Http.Server.serveConnStream cfg · handler) []
+      (LeanIn.Http.Server.serveConnStream cfg · handler) []
   let task ← IO.asTask (LeanIn.Runtime.run e prog) .dedicated
   return { executor := e, task }
 

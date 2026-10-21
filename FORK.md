@@ -2,7 +2,7 @@
 
 Base: `ecyrbe/leanio` at `0bb212d57f3dba2d76cf601f76a7c431a51c902e`, MIT licensed (see `LICENSE`; the upstream
 copyright notice is retained). This is a **fork**, not a vendored snapshot: its backend is moved onto LeanIn, which is a Lake dependency
-(pinned to the `scidonia/leanin` `v0.3.0` tag). Upstream changes are
+(pinned to the `scidonia/leanin` `v0.4.0` tag). Upstream changes are
 not merged automatically. The repository is `scidonia/leanio`.
 
 ## Divergence log

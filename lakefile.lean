@@ -8,7 +8,7 @@ package leanio where
   version := v!"0.1.0"
   fixedToolchain := true
 
-require leanin from git "https://github.com/scidonia/leanin.git" @ "v0.3.0"
+require leanin from git "https://github.com/scidonia/leanin.git" @ "v0.4.0"
 
 lean_lib LeanIO where
   globs := #[.one `LeanIO, .submodules `LeanIO]

@@ -26,7 +26,7 @@ abbrev Middleware := LeanIO.Backend.LeanIn.Middleware
 
 namespace LeanIO.Examples.Native
 
-open LeanIn.Examples.Http
+open LeanIn.Http
 
 def ping : Handler :=
   fun _ w => LeanIO.Backend.LeanIn.respond w 200 "OK" "pong\n".toUTF8
@@ -74,7 +74,7 @@ def boom (clock : LeanIn.Runtime.Clock) : Handler :=
 /-- Middleware demonstration: adds a header to every response it wraps. -/
 def tag (value : String) : LeanIO.Backend.LeanIn.Middleware :=
   fun handler req w =>
-    let w' : LeanIn.Examples.Http.Server.ResponseWriter := {
+    let w' : LeanIn.Http.Server.ResponseWriter := {
       start := fun rh => w.start { rh with headers := rh.headers.push ("X-Tag", value) }
       write := w.write
       finish := w.finish
@@ -138,7 +138,7 @@ def npingOption : LeanIO.Backend.LeanIn.NativeRoute :=
 end
 
 /-- Count a file body by streaming it, without keeping the bytes. -/
-def countStream (f : LeanIO.FormFile LeanIn.Runtime.VM LeanIn.Examples.Http.Server.BodyReader) :
+def countStream (f : LeanIO.FormFile LeanIn.Runtime.VM LeanIn.Http.Server.BodyReader) :
     LeanIn.Runtime.VM Nat := do
   let r ← (monadLift (IO.mkRef (0 : Nat)) : LeanIn.Runtime.VM _)
   f.stream fun chunk => monadLift (r.modify (· + chunk.size) : IO Unit)
@@ -249,8 +249,8 @@ def lineDemo : Handler :=
       s!"{req.line.method} {req.line.uri} host={host}\n".toUTF8
 
 /-- The upstream multipart API on the native reader: each entry is a field or a `FormFile`. -/
-partial def uploadWalk (mp : LeanIO.MultiPartForm LeanIn.Runtime.VM LeanIn.Examples.Http.Server.BodyReader)
-    (i : Nat) (acc : String) : LeanIn.Examples.Http.Server.ResponseWriter → LeanIn.Runtime.VM Unit
+partial def uploadWalk (mp : LeanIO.MultiPartForm LeanIn.Runtime.VM LeanIn.Http.Server.BodyReader)
+    (i : Nat) (acc : String) : LeanIn.Http.Server.ResponseWriter → LeanIn.Runtime.VM Unit
   | w => do
     match ← mp.nextEntry with
     | none => LeanIO.Backend.LeanIn.respond w 200 "OK" s!"parts={i} {acc.trimAscii.toString}\n".toUTF8
@@ -265,8 +265,8 @@ def upload : Handler :=
 
 /-- Count streamed parts with `FormFile.stream`. -/
 partial def uploadStreamWalk
-    (mp : LeanIO.MultiPartForm LeanIn.Runtime.VM LeanIn.Examples.Http.Server.BodyReader)
-    (i : Nat) (acc : String) : LeanIn.Examples.Http.Server.ResponseWriter → LeanIn.Runtime.VM Unit
+    (mp : LeanIO.MultiPartForm LeanIn.Runtime.VM LeanIn.Http.Server.BodyReader)
+    (i : Nat) (acc : String) : LeanIn.Http.Server.ResponseWriter → LeanIn.Runtime.VM Unit
   | w => do
     match ← mp.nextEntry with
     | none => LeanIO.Backend.LeanIn.respond w 200 "OK" s!"streamed={i} {acc}\n".toUTF8
@@ -280,8 +280,8 @@ def uploadStream : Handler :=
   LeanIO.Backend.LeanIn.withMultipartForm fun mp _req w => uploadStreamWalk mp 0 "" w
 
 /-- Save each file part to `/tmp/leanio-part-<n>`; fields are consumed as values. -/
-partial def saveParts (mp : LeanIO.MultiPartForm LeanIn.Runtime.VM LeanIn.Examples.Http.Server.BodyReader)
-    (i : Nat) : LeanIn.Examples.Http.Server.ResponseWriter → LeanIn.Runtime.VM Unit
+partial def saveParts (mp : LeanIO.MultiPartForm LeanIn.Runtime.VM LeanIn.Http.Server.BodyReader)
+    (i : Nat) : LeanIn.Http.Server.ResponseWriter → LeanIn.Runtime.VM Unit
   | w => do
     match ← mp.nextEntry with
     | none => LeanIO.Backend.LeanIn.respond w 200 "OK" s!"saved={i}\n".toUTF8

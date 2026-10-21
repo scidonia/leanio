@@ -25,7 +25,7 @@ passes through). -/
 public def catchErrors : Middleware := LeanIO.Backend.LeanIn.catchErrors
 
 /-- A response through the writer. -/
-public def respond (w : LeanIn.Examples.Http.Server.ResponseWriter) (status : Nat) (reason : String)
+public def respond (w : LeanIn.Http.Server.ResponseWriter) (status : Nat) (reason : String)
     (body : ByteArray) (headers : Array (String × String) := #[]) : LeanIn.Runtime.VM Unit := do
   w.start { status, reason, headers := headers.push ("Content-Length", toString body.size) }
   w.write body
