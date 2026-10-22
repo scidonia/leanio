@@ -2,7 +2,7 @@
 
 Base: `ecyrbe/leanio` at `0bb212d57f3dba2d76cf601f76a7c431a51c902e`, MIT licensed (see `LICENSE`; the upstream
 copyright notice is retained). This is a **fork**, not a vendored snapshot: its backend is moved onto LeanIn, which is a Lake dependency
-(pinned to the `scidonia/leanin` `v0.4.0` tag). Upstream changes are
+(pinned to the `scidonia/leanin` `v0.6.0` tag). Upstream changes are
 not merged automatically. The repository is `scidonia/leanio`.
 
 ## Divergence log
@@ -12,6 +12,7 @@ not merged automatically. The repository is `scidonia/leanio`.
 | 2026-10-20 | `Data/Headers/HeaderName.lean`: removed `contentEncoding`, `ifNoneMatch`, `lastModified`, `ifModifiedSince` | `Std.Http.Header.Name` provides them in Lean 4.35.0 |
 | 2026-10-20 | tests moved from `Tests.*` to `LeanIO.Tests.*` | they live inside the fork's namespace |
 | 2026-10-20 | `Router.RouteTrie` parameterised over its handler value (`RouteTrie H`); `RouteTrie HandlerFn` is the upstream instantiation | the LeanIn backend needs the same trie, lookup and fold over a native handler type; `dispatch` and the `Std.Http.Server.Handler` instance stay typed at `HandlerFn` |
+| 2026-10-22 | LeanIn dependency moved from `v0.4.0` to `v0.6.0`; the two writer wrappers carry `interim` | the v0.6.0 writer adds the interim-response field |
 | 2026-10-20 | `Router.Macro`: route syntax is an elaborator; `leanio.backend.native` option; `native … => …` and `nativeRoute` syntax; `Backend.LeanIn` handlers take `BodyReader`/`ResponseWriter`; `AppM` and native extractor classes | the unprefixed route syntax selects a backend by option, and streaming request and response bodies |
 | 2026-10-20 | `Backend.LeanIn`: request-aware `IntoResponseM`; native `File` (streamed, ETag/304), `RangeFile` (206/Content-Range, 416) and `BrowserCached` (JSON, ETag/304) | file, range and cached responses work natively; RemoteAddr/derive/BodyExt remain |
 | 2026-10-20 | `Backend.LeanIn`: request `Scope` with `onExit`, cooperative `checkCancelled`, and `spawn`, dispatched around every handler | request-owned children and exactly-once cleanup exist natively; cancellation is cooperative and shutdown/drain remains outstanding |
