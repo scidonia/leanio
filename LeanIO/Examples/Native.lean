@@ -75,6 +75,8 @@ def boom (clock : LeanIn.Runtime.Clock) : Handler :=
 def tag (value : String) : LeanIO.Backend.LeanIn.Middleware :=
   fun handler req w =>
     let w' : LeanIn.Http.Server.ResponseWriter := {
+      sendContinue := w.sendContinue
+      interim := w.interim
       start := fun rh => w.start { rh with headers := rh.headers.push ("X-Tag", value) }
       write := w.write
       finish := w.finish

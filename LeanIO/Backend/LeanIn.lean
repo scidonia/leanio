@@ -837,6 +837,8 @@ def withExtract (extract : Request → LeanIn.Runtime.VM (Except (Nat × String)
 /-- A writer that runs the handler but drops the body, for HEAD from a GET route. -/
 def discardBody (w : LeanIn.Http.Server.ResponseWriter) :
     LeanIn.Http.Server.ResponseWriter := {
+  sendContinue := w.sendContinue
+  interim := w.interim
   start := fun rh =>
     let hs := (rh.headers.filter (fun (n, _) => n.toLower != "content-length")).push ("Content-Length", "0")
     w.start { rh with headers := hs }
